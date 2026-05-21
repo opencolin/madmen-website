@@ -4,6 +4,7 @@ import { use, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { TASK_ORDER, TASKS, TEAM, type AgentColor } from "@/lib/team";
 import { Starburst } from "@/components/decorations";
+import { JoanWatching } from "@/components/joan-hero";
 
 type TaskOutput = {
   description?: string;
@@ -166,7 +167,7 @@ export default function Run({
             Sterling Cooper is working on{" "}
             <span className="bg-mustard px-3 inline-block">{client ?? "your brand"}</span>
           </h1>
-          <p className="mt-4 text-xs uppercase tracking-[0.25em] text-ink/60">
+          <p className="mt-4 mb-8 text-xs uppercase tracking-[0.25em] text-ink/60">
             Job {id.slice(0, 12)}… · status:{" "}
             <span
               className={
@@ -180,6 +181,19 @@ export default function Run({
               {state}
             </span>
           </p>
+          <div className="max-w-2xl">
+            <JoanWatching
+              greeting={
+                isFailed
+                  ? "These things happen. Pick a different brand and we'll start over."
+                  : isDone
+                  ? "We've got it. The poster's rendering now. Pleasure doing business."
+                  : runningAgent
+                  ? `${runningAgent.name} is on it. I'll keep the boys on schedule — this will take a few minutes.`
+                  : "The boys are warming up. Give me a second."
+              }
+            />
+          </div>
         </header>
 
         {pollError && (

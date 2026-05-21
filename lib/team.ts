@@ -7,8 +7,13 @@ export type Agent = {
   goal: string;
   bio: string;
   color: AgentColor;
-  taskId: string | null; // null = no task assigned (e.g. Joan in the current crew config)
+  taskId: string | null; // null = no task assigned in the current crew config
+  isHost?: boolean; // host shows in the hero section, not the crew grid
 };
+
+// Joan hosts the agency: she introduces the team on the landing page, watches
+// the room while the crew works, and signs off when the campaign lands.
+export const HOST_ID = "joan_holloway";
 
 export type Task = {
   id: string;
@@ -168,10 +173,11 @@ export const TEAM: Agent[] = [
   {
     id: "joan_holloway",
     name: "Joan Holloway",
-    role: "Office Manager",
-    goal: "Coordinates the crew",
-    bio: "Listed in the agent roster but the current crew config doesn't assign her a task. Kept here as a known orphan.",
-    color: "cream",
+    role: "VP, Client Services",
+    goal: "Hosts the agency, briefs the crew, presents the campaign",
+    bio: "Your host. Greets you at the door, briefs the team, keeps the boys on schedule, and presents the final campaign herself.",
+    color: "coral",
     taskId: null,
+    isHost: true,
   },
 ];

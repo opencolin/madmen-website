@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { TEAM } from "@/lib/team";
 import { Starburst, Orbit, Planet } from "@/components/decorations";
+import { JoanHero } from "@/components/joan-hero";
 
 const COLOR_CLASSES: Record<string, string> = {
   mustard: "bg-mustard text-ink",
@@ -61,21 +62,23 @@ export default function Home() {
           </span>
         </header>
 
-        <section className="grid md:grid-cols-2 gap-12 mb-20 items-start">
-          <div className="md:pt-8">
-            <p className="text-xs uppercase tracking-[0.3em] text-coral mb-4">
-              NOW with COMPUTER POWER!
-            </p>
-            <h2 className="font-display text-5xl md:text-6xl lg:text-7xl leading-[1.02] mb-6 text-balance">
-              Generate a 1960s ad poster for any brand.
-            </h2>
-            <p className="text-lg leading-relaxed text-ink/70 max-w-md">
-              Eight AI agents modeled on Sterling Cooper run a full creative brief,
-              then hand you a Gemini-ready image prompt.
-            </p>
-          </div>
+        <section className="mb-12 max-w-3xl">
+          <p className="text-xs uppercase tracking-[0.3em] text-coral mb-4">
+            NOW with COMPUTER POWER!
+          </p>
+          <h2 className="font-display text-5xl md:text-6xl lg:text-7xl leading-[1.02] mb-6 text-balance">
+            Generate a 1960s ad poster for any brand.
+          </h2>
+          <p className="text-lg leading-relaxed text-ink/70 max-w-2xl">
+            Eight AI agents modeled on Sterling Cooper run a full creative brief,
+            then hand you a Gemini-ready image prompt. Joan will brief you in.
+          </p>
+        </section>
 
-          <form onSubmit={onSubmit} className="bg-mustard p-8 md:p-10 relative shadow-[8px_8px_0_0_#1A1A1A]">
+        <section className="grid md:grid-cols-[1fr_1fr] lg:grid-cols-[1.1fr_1fr] gap-12 lg:gap-16 mb-24 items-start">
+          <JoanHero />
+
+          <form onSubmit={onSubmit} className="bg-mustard p-8 md:p-10 relative shadow-[8px_8px_0_0_#1A1A1A] md:mt-8">
             <Orbit className="absolute -top-8 -right-8 w-20 h-20 text-ink opacity-25 pointer-events-none" />
             <label
               htmlFor="brand"
@@ -113,13 +116,13 @@ export default function Home() {
 
         <section>
           <div className="flex items-baseline gap-4 mb-8 flex-wrap">
-            <h3 className="font-display text-4xl md:text-5xl">Your creative team</h3>
+            <h3 className="font-display text-4xl md:text-5xl">The crew Joan keeps in line</h3>
             <span className="text-[10px] uppercase tracking-[0.3em] text-ink/50">
               8 specialists, sequential brief
             </span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {TEAM.map((agent) => (
+            {TEAM.filter((a) => !a.isHost).map((agent) => (
               <article
                 key={agent.id}
                 className={`p-5 relative ${COLOR_CLASSES[agent.color]} shadow-[4px_4px_0_0_#1A1A1A]`}
@@ -129,11 +132,6 @@ export default function Home() {
                   {agent.role}
                 </p>
                 <p className="text-sm leading-snug">{agent.bio}</p>
-                {agent.taskId === null && (
-                  <span className="absolute top-3 right-3 text-[9px] uppercase tracking-wider bg-ink text-cream px-2 py-0.5">
-                    no task
-                  </span>
-                )}
               </article>
             ))}
           </div>

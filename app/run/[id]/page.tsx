@@ -12,13 +12,40 @@ type TaskOutput = {
   name?: string;
 };
 
+type LastStep = {
+  action?: string;
+  result?: string;
+};
+
 type Status = {
   state?: string;
   status?: string;
   result?: string | null;
   tasks_output?: TaskOutput[];
+  last_step?: LastStep | null;
+  last_executed_task?: string | null;
   error?: string;
 };
+
+type ParsedLastStep = {
+  thought: string;
+  action: string;
+  actionInput: string;
+  toolResult: string;
+};
+
+function parseLastStep(step: LastStep): ParsedLastStep {
+  const text = step.action ?? "";
+  const thoughtMatch = text.match(/Thought:\s*([\s\S]*?)(?=\n(?:Action|Action Input|Final Answer)\s*:|$)/);
+  const actionMatch = text.match(/Action:\s*([\s\S]*?)(?=\n(?:Action Input|Thought|Final Answer)\s*:|$)/);
+  const actionInputMatch = text.match(/Action Input:\s*([\s\S]*?)(?=\n(?:Thought|Action|Observation|Final Answer)\s*:|$)/);
+  return {
+    thought: thoughtMatch?.[1]?.trim() ?? "",
+    action: actionMatch?.[1]?.trim() ?? "",
+    actionInput: actionInputMatch?.[1]?.trim() ?? "",
+    toolResult: step.result?.trim() ?? "",
+  };
+}
 
 const COLOR_CHIP: Record<AgentColor, string> = {
   mustard: "bg-mustard text-ink",
@@ -76,7 +103,26 @@ export default function Run({
   const state = getState(status);
   const isDone = ["SUCCESS", "COMPLETED"].includes(state);
   const isFailed = ["FAILED", "ERROR"].includes(state);
-  const lastDoneIdx = (status?.tasks_output?.length ?? 0) - 1;
+
+  // Use last_executed_task as the most reliable progress indicator while the
+  // crew is running. Fall back to tasks_output.length once the crew completes.
+  const lastExecutedIdx = status?.last_executed_task
+    ? TASK_ORDER.indexOf(status.last_executed_task)
+    : -1;
+  const lastDoneIdx = Math.max(
+    lastExecutedIdx,
+    (status?.tasks_output?.length ?? 0) - 1,
+  );
+  const parsedStep =
+    status?.last_step && !isDone && !isFailed ? parseLastStep(status.last_step) : null;
+  const runningAgent =
+    !isDone && !isFailed && lastDoneIdx + 1 < TASK_ORDER.length
+      ? (() => {
+          const taskId = TASK_ORDER[lastDoneIdx + 1];
+          const task = TASKS[taskId];
+          return task ? TEAM.find((a) => a.id === task.agentId) : undefined;
+        })()
+      : undefined;
 
   return (
     <main className="relative min-h-screen overflow-hidden">
@@ -116,6 +162,61 @@ export default function Run({
           <div className="bg-coral text-cream p-4 mb-8 text-sm">
             Polling error: {pollError}. Retrying…
           </div>
+        )}
+
+        {parsedStep && (
+          <section className="mb-8 bg-cream border-2 border-ink p-6 shadow-[4px_4px_0_0_#1A1A1A]">
+            <div className="flex items-baseline justify-between gap-4 mb-4 flex-wrap">
+              <p className="text-xs uppercase tracking-[0.3em] text-coral">
+                Live agent thinking
+              </p>
+              {runningAgent && (
+                <span className="text-[10px] uppercase tracking-[0.25em] text-ink/60">
+                  {runningAgent.name} · {runningAgent.role}
+                </span>
+              )}
+            </div>
+            {parsedStep.thought && (
+              <div className="mb-4">
+                <p className="text-[10px] uppercase tracking-[0.25em] text-ink/60 mb-1">
+                  Thought
+                </p>
+                <pre className="whitespace-pre-wrap font-body text-sm leading-relaxed">
+                  {parsedStep.thought}
+                </pre>
+              </div>
+            )}
+            {parsedStep.action && (
+              <div className="mb-4">
+                <p className="text-[10px] uppercase tracking-[0.25em] text-ink/60 mb-1">
+                  Action
+                </p>
+                <pre className="whitespace-pre-wrap font-body text-sm leading-relaxed bg-sand px-3 py-2">
+                  {parsedStep.action}
+                </pre>
+              </div>
+            )}
+            {parsedStep.actionInput && (
+              <div className="mb-4">
+                <p className="text-[10px] uppercase tracking-[0.25em] text-ink/60 mb-1">
+                  Action input
+                </p>
+                <pre className="whitespace-pre-wrap font-body text-sm leading-relaxed bg-sand px-3 py-2 max-h-32 overflow-y-auto">
+                  {parsedStep.actionInput}
+                </pre>
+              </div>
+            )}
+            {parsedStep.toolResult && (
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.25em] text-ink/60 mb-1">
+                  Tool result (latest)
+                </p>
+                <pre className="whitespace-pre-wrap font-body text-sm leading-relaxed bg-sand px-3 py-2 max-h-48 overflow-y-auto">
+                  {parsedStep.toolResult}
+                </pre>
+              </div>
+            )}
+          </section>
         )}
 
         {isDone && status?.result && (

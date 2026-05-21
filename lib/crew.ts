@@ -56,11 +56,20 @@ export type TaskOutput = {
   [k: string]: unknown;
 };
 
+export type LastStep = {
+  action?: string;
+  result?: string;
+  [k: string]: unknown;
+};
+
 export type CrewStatus = {
   state?: string;
   status?: string;
   result?: string | null;
+  result_json?: unknown;
   tasks_output?: TaskOutput[];
+  last_step?: LastStep | null;
+  last_executed_task?: string | null;
   error?: string;
   [k: string]: unknown;
 };

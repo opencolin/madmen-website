@@ -16,9 +16,9 @@ const sans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Madmen.ai — 1960s ad poster generator",
+  title: "Sterling Cooper — 1960s ad campaigns, on demand",
   description:
-    "Eight AI agents modeled on Sterling Cooper generate a Gemini-ready prompt for a Mad Men style advertising poster.",
+    "Madison Avenue, 1962. Tell Joan your brand. The creative floor drafts the campaign and she walks the poster to your office by close of business.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

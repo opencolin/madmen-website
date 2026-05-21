@@ -13,8 +13,19 @@ type TaskOutput = {
 };
 
 type LastStep = {
-  action?: string;
+  prompt?: string;
+  thought?: string;
+  tool?: string;
+  tool_input?: string;
   result?: string;
+};
+
+type LastExecutedTask = {
+  name?: string;
+  agent?: string;
+  output?: string;
+  description?: string;
+  expected_output?: string;
 };
 
 type Status = {
@@ -23,28 +34,14 @@ type Status = {
   result?: string | null;
   tasks_output?: TaskOutput[];
   last_step?: LastStep | null;
-  last_executed_task?: string | null;
+  last_executed_task?: LastExecutedTask | null;
   error?: string;
 };
 
-type ParsedLastStep = {
-  thought: string;
-  action: string;
-  actionInput: string;
-  toolResult: string;
-};
-
-function parseLastStep(step: LastStep): ParsedLastStep {
-  const text = step.action ?? "";
-  const thoughtMatch = text.match(/Thought:\s*([\s\S]*?)(?=\n(?:Action|Action Input|Final Answer)\s*:|$)/);
-  const actionMatch = text.match(/Action:\s*([\s\S]*?)(?=\n(?:Action Input|Thought|Final Answer)\s*:|$)/);
-  const actionInputMatch = text.match(/Action Input:\s*([\s\S]*?)(?=\n(?:Thought|Action|Observation|Final Answer)\s*:|$)/);
-  return {
-    thought: thoughtMatch?.[1]?.trim() ?? "",
-    action: actionMatch?.[1]?.trim() ?? "",
-    actionInput: actionInputMatch?.[1]?.trim() ?? "",
-    toolResult: step.result?.trim() ?? "",
-  };
+// Strip the "Thought: " prefix the LLM emits since we already label the field.
+function cleanThought(s: string | undefined): string {
+  if (!s) return "";
+  return s.replace(/^\s*Thought:\s*/i, "").trim();
 }
 
 const COLOR_CHIP: Record<AgentColor, string> = {
@@ -70,6 +67,9 @@ export default function Run({
   const [status, setStatus] = useState<Status | null>(null);
   const [pollError, setPollError] = useState<string | null>(null);
   const [expandedTask, setExpandedTask] = useState<string | null>(null);
+  // Per-task deliverables accumulate as last_executed_task changes over time
+  // since the endpoint only returns the most recent one.
+  const [taskOutputs, setTaskOutputs] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let alive = true;
@@ -83,6 +83,24 @@ export default function Run({
         if (!res.ok) throw new Error(data.error ?? "status failed");
         setStatus(data);
         setPollError(null);
+
+        // Accumulate task outputs from last_executed_task as the crew progresses.
+        const lt = data.last_executed_task;
+        if (lt?.name && typeof lt.output === "string" && lt.output.length > 0) {
+          setTaskOutputs((prev) =>
+            prev[lt.name!] ? prev : { ...prev, [lt.name!]: lt.output! },
+          );
+        }
+        // Also accept tasks_output array (populated when crew completes).
+        if (Array.isArray(data.tasks_output)) {
+          data.tasks_output.forEach((to, idx) => {
+            const name = to.name ?? TASK_ORDER[idx];
+            if (name && typeof to.raw === "string" && to.raw.length > 0) {
+              setTaskOutputs((prev) => (prev[name] ? prev : { ...prev, [name]: to.raw! }));
+            }
+          });
+        }
+
         const state = getState(data);
         const done = ["SUCCESS", "COMPLETED", "FAILED", "ERROR"].includes(state);
         if (!done) timer = setTimeout(tick, 5000);
@@ -104,17 +122,14 @@ export default function Run({
   const isDone = ["SUCCESS", "COMPLETED"].includes(state);
   const isFailed = ["FAILED", "ERROR"].includes(state);
 
-  // Use last_executed_task as the most reliable progress indicator while the
-  // crew is running. Fall back to tasks_output.length once the crew completes.
-  const lastExecutedIdx = status?.last_executed_task
-    ? TASK_ORDER.indexOf(status.last_executed_task)
-    : -1;
-  const lastDoneIdx = Math.max(
-    lastExecutedIdx,
-    (status?.tasks_output?.length ?? 0) - 1,
-  );
-  const parsedStep =
-    status?.last_step && !isDone && !isFailed ? parseLastStep(status.last_step) : null;
+  // Use last_executed_task.name as the most reliable progress indicator while
+  // the crew is running. Fall back to count of accumulated task outputs.
+  const lastExecutedName = status?.last_executed_task?.name;
+  const lastExecutedIdx = lastExecutedName ? TASK_ORDER.indexOf(lastExecutedName) : -1;
+  const accumulatedIdx =
+    TASK_ORDER.reduce((acc, name, idx) => (taskOutputs[name] ? idx : acc), -1);
+  const lastDoneIdx = Math.max(lastExecutedIdx, accumulatedIdx);
+  const step = !isDone && !isFailed ? status?.last_step : null;
   const runningAgent =
     !isDone && !isFailed && lastDoneIdx + 1 < TASK_ORDER.length
       ? (() => {
@@ -123,6 +138,7 @@ export default function Run({
           return task ? TEAM.find((a) => a.id === task.agentId) : undefined;
         })()
       : undefined;
+  const stepThought = cleanThought(step?.thought);
 
   return (
     <main className="relative min-h-screen overflow-hidden">
@@ -164,7 +180,7 @@ export default function Run({
           </div>
         )}
 
-        {parsedStep && (
+        {step && (stepThought || step.tool || step.tool_input || step.result) && (
           <section className="mb-8 bg-cream border-2 border-ink p-6 shadow-[4px_4px_0_0_#1A1A1A]">
             <div className="flex items-baseline justify-between gap-4 mb-4 flex-wrap">
               <p className="text-xs uppercase tracking-[0.3em] text-coral">
@@ -176,43 +192,43 @@ export default function Run({
                 </span>
               )}
             </div>
-            {parsedStep.thought && (
+            {stepThought && (
               <div className="mb-4">
                 <p className="text-[10px] uppercase tracking-[0.25em] text-ink/60 mb-1">
                   Thought
                 </p>
                 <pre className="whitespace-pre-wrap font-body text-sm leading-relaxed">
-                  {parsedStep.thought}
+                  {stepThought}
                 </pre>
               </div>
             )}
-            {parsedStep.action && (
+            {step.tool && (
               <div className="mb-4">
                 <p className="text-[10px] uppercase tracking-[0.25em] text-ink/60 mb-1">
-                  Action
+                  Tool
                 </p>
                 <pre className="whitespace-pre-wrap font-body text-sm leading-relaxed bg-sand px-3 py-2">
-                  {parsedStep.action}
+                  {step.tool}
                 </pre>
               </div>
             )}
-            {parsedStep.actionInput && (
+            {step.tool_input && (
               <div className="mb-4">
                 <p className="text-[10px] uppercase tracking-[0.25em] text-ink/60 mb-1">
-                  Action input
+                  Tool input
                 </p>
                 <pre className="whitespace-pre-wrap font-body text-sm leading-relaxed bg-sand px-3 py-2 max-h-32 overflow-y-auto">
-                  {parsedStep.actionInput}
+                  {step.tool_input}
                 </pre>
               </div>
             )}
-            {parsedStep.toolResult && (
+            {step.result && (
               <div>
                 <p className="text-[10px] uppercase tracking-[0.25em] text-ink/60 mb-1">
-                  Tool result (latest)
+                  Tool result
                 </p>
                 <pre className="whitespace-pre-wrap font-body text-sm leading-relaxed bg-sand px-3 py-2 max-h-48 overflow-y-auto">
-                  {parsedStep.toolResult}
+                  {step.result}
                 </pre>
               </div>
             )}
@@ -253,14 +269,15 @@ export default function Run({
             {TASK_ORDER.map((taskId, idx) => {
               const task = TASKS[taskId];
               const agent = TEAM.find((a) => a.id === task.agentId);
-              const taskOutput = status?.tasks_output?.[idx];
-              const taskState: "done" | "running" | "pending" | "skipped" = taskOutput
-                ? "done"
-                : idx === lastDoneIdx + 1 && !isDone && !isFailed
-                ? "running"
-                : isFailed
-                ? "skipped"
-                : "pending";
+              const accumulatedOutput = taskOutputs[taskId];
+              const taskState: "done" | "running" | "pending" | "skipped" =
+                accumulatedOutput || idx <= lastDoneIdx
+                  ? "done"
+                  : idx === lastDoneIdx + 1 && !isDone && !isFailed
+                  ? "running"
+                  : isFailed
+                  ? "skipped"
+                  : "pending";
               const open = expandedTask === taskId;
 
               return (
@@ -316,13 +333,13 @@ export default function Run({
                         Expected deliverable
                       </p>
                       <p className="text-sm mb-4 italic">{task.deliverable}</p>
-                      {taskOutput?.raw ? (
+                      {accumulatedOutput ? (
                         <>
                           <p className="text-[10px] uppercase tracking-[0.25em] text-ink/60 mb-1">
                             {agent?.name ?? task.agentId}&apos;s output
                           </p>
                           <pre className="bg-sand border border-ink/20 p-4 whitespace-pre-wrap text-sm leading-relaxed font-body max-h-[600px] overflow-y-auto">
-                            {taskOutput.raw}
+                            {accumulatedOutput}
                           </pre>
                         </>
                       ) : (

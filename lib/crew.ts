@@ -56,9 +56,33 @@ export type TaskOutput = {
   [k: string]: unknown;
 };
 
+// CrewAI Enterprise emits a structured `last_step` per agent iteration. The
+// server has already parsed Thought / Tool / Tool Input out of the LLM response,
+// so we read these fields directly instead of regex-parsing prose.
 export type LastStep = {
-  action?: string;
+  prompt?: string;
+  thought?: string;
+  tool?: string;
+  tool_input?: string;
   result?: string;
+  kickoff_id?: string;
+  meta?: Record<string, unknown>;
+  [k: string]: unknown;
+};
+
+// `last_executed_task` is the most recently completed task. It's an object,
+// not a string. `.output` holds that task's deliverable; we accumulate these
+// client-side because the endpoint only returns the latest one.
+export type LastExecutedTask = {
+  name?: string;
+  agent?: string;
+  description?: string;
+  expected_output?: string;
+  output?: string;
+  output_json?: unknown;
+  summary?: string;
+  kickoff_id?: string;
+  meta?: Record<string, unknown>;
   [k: string]: unknown;
 };
 
@@ -69,7 +93,8 @@ export type CrewStatus = {
   result_json?: unknown;
   tasks_output?: TaskOutput[];
   last_step?: LastStep | null;
-  last_executed_task?: string | null;
+  last_executed_task?: LastExecutedTask | null;
+  source?: string;
   error?: string;
   [k: string]: unknown;
 };

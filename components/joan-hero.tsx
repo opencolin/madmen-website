@@ -18,34 +18,8 @@ const DEFAULT_GREETING =
 export function JoanHero({ greeting = DEFAULT_GREETING, caption }: JoanHeroProps) {
   return (
     <div className="relative">
-      {/* background decorative orbits — counter-rotating */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <Orbit className="joan-orbit-1 w-[120%] h-[120%] text-teal opacity-25" />
-      </div>
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <Orbit className="joan-orbit-2 w-[140%] h-[140%] text-mustard opacity-20" />
-      </div>
-
-      {/* foreground decoration — pulsing starburst at shoulder */}
-      <Starburst className="joan-pulse absolute -bottom-4 -left-6 w-20 h-20 text-coral z-10 pointer-events-none" />
-      <Starburst className="joan-spin-slow absolute top-0 right-0 w-12 h-12 text-mustard opacity-70 z-10 pointer-events-none" />
-
-      {/* Joan portrait, breathing */}
-      <div className="relative mx-auto w-72 md:w-80 lg:w-96">
-        <div className="joan-breathe">
-          <Image
-            src="/joan.png"
-            alt="Stylized illustration of Joan Holloway, VP Client Services"
-            width={768}
-            height={1024}
-            priority
-            className="w-full h-auto block"
-          />
-        </div>
-      </div>
-
-      {/* Speech bubble */}
-      <div className="joan-rise relative mt-6 mx-auto max-w-md">
+      {/* Speech bubble ABOVE Joan, tail pointing down to her head */}
+      <div className="joan-rise relative mb-4 mx-auto max-w-md">
         <div className="bg-mustard text-ink p-5 shadow-[6px_6px_0_0_#1A1A1A] relative">
           <p className="text-[10px] uppercase tracking-[0.3em] text-coral mb-2">
             Joan Holloway · VP, Client Services
@@ -57,14 +31,41 @@ export function JoanHero({ greeting = DEFAULT_GREETING, caption }: JoanHeroProps
           {caption && (
             <p className="mt-3 text-xs uppercase tracking-[0.25em] text-ink/60">{caption}</p>
           )}
+          {/* Tail points down toward Joan's head — centered under the bubble */}
           <div
-            className="absolute -top-3 left-12 w-0 h-0"
+            className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-0 h-0"
             style={{
               borderLeft: "12px solid transparent",
               borderRight: "12px solid transparent",
-              borderBottom: "12px solid #E5B33A",
+              borderTop: "12px solid #E5B33A",
             }}
             aria-hidden
+          />
+        </div>
+      </div>
+
+      {/* background decorative orbits — counter-rotating */}
+      <div className="absolute inset-x-0 top-32 bottom-0 flex items-center justify-center pointer-events-none">
+        <Orbit className="joan-orbit-1 w-[110%] h-[110%] text-teal opacity-25" />
+      </div>
+      <div className="absolute inset-x-0 top-32 bottom-0 flex items-center justify-center pointer-events-none">
+        <Orbit className="joan-orbit-2 w-[130%] h-[130%] text-mustard opacity-20" />
+      </div>
+
+      {/* foreground decoration — pulsing starburst at shoulder */}
+      <Starburst className="joan-pulse absolute -bottom-4 -left-6 w-20 h-20 text-coral z-10 pointer-events-none" />
+      <Starburst className="joan-spin-slow absolute bottom-24 right-0 w-12 h-12 text-mustard opacity-70 z-10 pointer-events-none" />
+
+      {/* Joan portrait, breathing */}
+      <div className="relative mx-auto w-72 md:w-80 lg:w-96">
+        <div className="joan-breathe">
+          <Image
+            src="/joan.png"
+            alt="Stylized illustration of Joan Holloway, VP Client Services"
+            width={768}
+            height={1024}
+            priority
+            className="w-full h-auto block"
           />
         </div>
       </div>

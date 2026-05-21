@@ -95,8 +95,9 @@ export default function Home() {
             Generate a 1960s ad poster for any brand.
           </h2>
           <p className="text-lg leading-relaxed text-ink/70 max-w-2xl">
-            Eight AI agents modeled on Sterling Cooper run a full creative brief,
-            then hand you a Gemini-ready image prompt. Joan will brief you in.
+            Madison Avenue, 1962. Tell Joan your brand. The creative floor
+            drafts the campaign and she walks the poster to your office by
+            close of business.
           </p>
         </section>
 

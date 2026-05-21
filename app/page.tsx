@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { TEAM } from "@/lib/team";
 import { Starburst, Orbit, Planet } from "@/components/decorations";
 import { JoanHero } from "@/components/joan-hero";
+import { JOAN_LANDING_GREETING, JOAN_FORM_HINT } from "@/lib/joan-voice";
 
 const COLOR_CLASSES: Record<string, string> = {
   mustard: "bg-mustard text-ink",
@@ -76,7 +77,7 @@ export default function Home() {
         </section>
 
         <section className="grid md:grid-cols-[1fr_1fr] lg:grid-cols-[1.1fr_1fr] gap-12 lg:gap-16 mb-24 items-start">
-          <JoanHero />
+          <JoanHero greeting={JOAN_LANDING_GREETING} caption={JOAN_FORM_HINT} />
 
           <form onSubmit={onSubmit} className="bg-mustard p-8 md:p-10 relative shadow-[8px_8px_0_0_#1A1A1A] md:mt-8">
             <Orbit className="absolute -top-8 -right-8 w-20 h-20 text-ink opacity-25 pointer-events-none" />
@@ -101,7 +102,7 @@ export default function Home() {
               disabled={loading || !name.trim()}
               className="w-full bg-coral text-cream font-bold uppercase tracking-[0.25em] px-6 py-4 text-lg disabled:opacity-40 hover:bg-ink transition-colors"
             >
-              {loading ? "Kicking off…" : "Generate!"}
+              {loading ? "Joan's on it…" : "Tell Joan"}
             </button>
             {error && (
               <p className="mt-4 text-sm text-coral bg-cream px-3 py-2 border-2 border-coral">

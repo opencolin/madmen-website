@@ -5,6 +5,7 @@ import Link from "next/link";
 import { TASK_ORDER, TASKS, TEAM, type AgentColor } from "@/lib/team";
 import { Starburst } from "@/components/decorations";
 import { JoanWatching } from "@/components/joan-hero";
+import { joanLineForPhase } from "@/lib/joan-voice";
 
 type TaskOutput = {
   description?: string;
@@ -183,15 +184,17 @@ export default function Run({
           </p>
           <div className="max-w-2xl">
             <JoanWatching
-              greeting={
-                isFailed
-                  ? "These things happen. Pick a different brand and we'll start over."
+              greeting={joanLineForPhase({
+                phase: isFailed
+                  ? "failed"
                   : isDone
-                  ? "We've got it. The poster's rendering now. Pleasure doing business."
-                  : runningAgent
-                  ? `${runningAgent.name} is on it. I'll keep the boys on schedule — this will take a few minutes.`
-                  : "The boys are warming up. Give me a second."
-              }
+                  ? "success"
+                  : lastExecutedName
+                  ? "running"
+                  : "starting",
+                taskName: lastExecutedName,
+                client: client ?? undefined,
+              })}
             />
           </div>
         </header>
@@ -263,12 +266,12 @@ export default function Run({
               <div className="flex items-baseline justify-between gap-4 mb-4 flex-wrap">
                 <div>
                   <p className="text-xs uppercase tracking-[0.3em] mb-2 opacity-80">
-                    Final Gemini-ready prompt
+                    The boys&apos; final prompt
                     {editedPrompt !== null && editedPrompt !== status.result && (
                       <span className="ml-2 bg-cream text-teal px-2 py-0.5 text-[10px]">edited</span>
                     )}
                   </p>
-                  <h2 className="font-display text-3xl">Edit, then regenerate below</h2>
+                  <h2 className="font-display text-3xl">Joan brought it over. Edit if you like.</h2>
                 </div>
               </div>
               <textarea
@@ -309,7 +312,7 @@ export default function Run({
         )}
 
         <section>
-          <h2 className="font-display text-4xl mb-6">Deliverables</h2>
+          <h2 className="font-display text-4xl mb-6">What the boys are turning in</h2>
           <ol className="space-y-3">
             {TASK_ORDER.map((taskId, idx) => {
               const task = TASKS[taskId];
@@ -467,16 +470,20 @@ function PosterGenerator({ prompt, client }: { prompt: string; client: string })
   const isGenerating = state === "generating";
   const sectionTitle =
     state === "done"
-      ? "Your 1960s ad poster"
+      ? "Joan presents: the campaign"
       : state === "error"
-      ? "Render failed — try again"
-      : "Rendering your poster…";
+      ? "Art department's having a moment"
+      : "Joan's sent it to the art department";
+  const sectionEyebrow =
+    state === "done"
+      ? "From Joan's art team · Qwen-Image-Edit"
+      : state === "error"
+      ? "Joan, we have a problem"
+      : "Auto-rendering · Qwen-Image-Edit";
 
   return (
     <section className="mb-12 bg-coral text-cream p-8 shadow-[8px_8px_0_0_#1A1A1A]">
-      <p className="text-xs uppercase tracking-[0.3em] mb-2 opacity-80">
-        {state === "done" ? "Direct from Qwen-Image-Edit" : "Auto-rendering with Qwen-Image-Edit"}
-      </p>
+      <p className="text-xs uppercase tracking-[0.3em] mb-2 opacity-80">{sectionEyebrow}</p>
       <h2 className="font-display text-3xl mb-4">{sectionTitle}</h2>
 
       {isGenerating && (

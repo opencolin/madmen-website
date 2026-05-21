@@ -1,11 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { TEAM } from "@/lib/team";
 import { Starburst, Orbit, Planet } from "@/components/decorations";
 import { JoanHero } from "@/components/joan-hero";
 import { JOAN_LANDING_GREETING, JOAN_FORM_HINT } from "@/lib/joan-voice";
+import {
+  listPortfolioEntries,
+  subscribePortfolio,
+  type PortfolioEntry,
+} from "@/lib/portfolio";
 
 const COLOR_CLASSES: Record<string, string> = {
   mustard: "bg-mustard text-ink",
@@ -18,7 +24,17 @@ export default function Home() {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [recent, setRecent] = useState<PortfolioEntry[]>([]);
   const router = useRouter();
+
+  // Show the 4 most recent campaigns from the portfolio above the team grid.
+  useEffect(() => {
+    setRecent(listPortfolioEntries().slice(0, 4));
+    const unsub = subscribePortfolio(() => {
+      setRecent(listPortfolioEntries().slice(0, 4));
+    });
+    return unsub;
+  }, []);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -58,9 +74,17 @@ export default function Home() {
               MADMEN.AI
             </h1>
           </div>
-          <span className="text-[10px] uppercase tracking-[0.3em] text-teal hidden md:inline">
-            Sterling Cooper · Est. 2026
-          </span>
+          <div className="hidden md:flex items-center gap-6">
+            <Link
+              href="/portfolio"
+              className="text-[10px] uppercase tracking-[0.3em] text-coral hover:text-ink"
+            >
+              Portfolio
+            </Link>
+            <span className="text-[10px] uppercase tracking-[0.3em] text-teal">
+              Sterling Cooper · Est. 2026
+            </span>
+          </div>
         </header>
 
         <section className="mb-12 max-w-3xl">
@@ -114,6 +138,62 @@ export default function Home() {
             </p>
           </form>
         </section>
+
+        {recent.length > 0 && (
+          <section className="mb-20">
+            <div className="flex items-baseline justify-between gap-4 mb-6 flex-wrap">
+              <div className="flex items-baseline gap-4 flex-wrap">
+                <h3 className="font-display text-4xl md:text-5xl">Joan&apos;s recent campaigns</h3>
+                <span className="text-[10px] uppercase tracking-[0.3em] text-ink/50">
+                  newest first · saved in this browser
+                </span>
+              </div>
+              <Link
+                href="/portfolio"
+                className="text-xs uppercase tracking-[0.3em] text-coral hover:text-ink"
+              >
+                See all →
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {recent.map((entry) => (
+                <Link
+                  key={entry.id}
+                  href={`/run/${entry.id}?client=${encodeURIComponent(entry.client)}`}
+                  className="group block bg-cream border-2 border-ink shadow-[4px_4px_0_0_#1A1A1A] hover:shadow-[8px_8px_0_0_#1A1A1A] hover:-translate-x-1 hover:-translate-y-1 transition-all"
+                >
+                  <div className="relative aspect-square bg-sand overflow-hidden">
+                    {entry.imageDataUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={entry.imageDataUrl}
+                        alt={`Mad Men style poster for ${entry.client}`}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center text-ink/40">
+                        <Starburst className="w-10 h-10 text-mustard mb-1" />
+                        <span className="text-[9px] uppercase tracking-[0.25em]">
+                          rendering…
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-3 border-t-2 border-ink">
+                    <p className="font-display text-lg leading-tight truncate">{entry.client}</p>
+                    <p className="text-[9px] uppercase tracking-[0.25em] text-ink/60 mt-1">
+                      {new Date(entry.updatedAt).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section>
           <div className="flex items-baseline gap-4 mb-8 flex-wrap">

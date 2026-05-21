@@ -1,11 +1,16 @@
 "use client";
 
-import { use, useEffect, useRef, useState } from "react";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { TASK_ORDER, TASKS, TEAM, type AgentColor } from "@/lib/team";
 import { Starburst } from "@/components/decorations";
 import { JoanWatching } from "@/components/joan-hero";
 import { joanLineForPhase } from "@/lib/joan-voice";
+import {
+  loadPortfolioEntry,
+  savePortfolioEntry,
+  blobToDataUrl,
+} from "@/lib/portfolio";
 
 type TaskOutput = {
   description?: string;
@@ -75,11 +80,69 @@ export default function Run({
   // The crew's final prompt is editable. We initialize editedPrompt the first
   // time status.result lands; subsequent edits are user-driven.
   const [editedPrompt, setEditedPrompt] = useState<string | null>(null);
+  // Image data URL seeded from the portfolio if we've been here before.
+  // PosterGenerator uses it to skip auto-render on hydrated entries.
+  const [savedImageDataUrl, setSavedImageDataUrl] = useState<string | null>(null);
+  // Track whether we've already saved the original crew prompt.
+  const portfolioSeededRef = useRef(false);
+  const portfolioHydratedRef = useRef(false);
+
+  // Hydrate from localStorage on mount.
+  useEffect(() => {
+    const saved = loadPortfolioEntry(id);
+    if (saved) {
+      portfolioHydratedRef.current = true;
+      setEditedPrompt(saved.prompt);
+      setSavedImageDataUrl(saved.imageDataUrl);
+    }
+  }, [id]);
+
   useEffect(() => {
     if (status?.result && editedPrompt === null) {
       setEditedPrompt(status.result);
     }
   }, [status?.result, editedPrompt]);
+
+  // Persist the original crew output the first time it lands.
+  useEffect(() => {
+    if (!status?.result || portfolioSeededRef.current) return;
+    portfolioSeededRef.current = true;
+    savePortfolioEntry({
+      id,
+      client: client ?? "campaign",
+      prompt: status.result,
+      promptOriginal: status.result,
+    });
+  }, [status?.result, id, client]);
+
+  // Persist edits (debounced via a microtask-deferred save).
+  useEffect(() => {
+    if (editedPrompt === null) return;
+    if (!status?.result) return; // wait for crew completion
+    const t = setTimeout(() => {
+      savePortfolioEntry({
+        id,
+        client: client ?? "campaign",
+        prompt: editedPrompt,
+      });
+    }, 400);
+    return () => clearTimeout(t);
+  }, [editedPrompt, id, client, status?.result]);
+
+  // Called by PosterGenerator when an image lands. We save the data URL
+  // (rehydrates on refresh) and remember it locally so a re-mount of
+  // PosterGenerator doesn't re-trigger auto-render.
+  const onPosterReady = useCallback(
+    (dataUrl: string) => {
+      setSavedImageDataUrl(dataUrl);
+      savePortfolioEntry({
+        id,
+        client: client ?? "campaign",
+        imageDataUrl: dataUrl,
+      });
+    },
+    [id, client],
+  );
 
   useEffect(() => {
     let alive = true;
@@ -297,6 +360,8 @@ export default function Run({
             <PosterGenerator
               prompt={editedPrompt ?? status.result}
               client={client ?? "campaign"}
+              initialImageDataUrl={savedImageDataUrl}
+              onImageReady={onPosterReady}
             />
           </>
         )}
@@ -415,12 +480,24 @@ export default function Run({
   );
 }
 
-function PosterGenerator({ prompt, client }: { prompt: string; client: string }) {
-  const [state, setState] = useState<"idle" | "generating" | "done" | "error">("idle");
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+function PosterGenerator({
+  prompt,
+  client,
+  initialImageDataUrl,
+  onImageReady,
+}: {
+  prompt: string;
+  client: string;
+  initialImageDataUrl?: string | null;
+  onImageReady?: (dataUrl: string) => void;
+}) {
+  const [state, setState] = useState<"idle" | "generating" | "done" | "error">(
+    initialImageDataUrl ? "done" : "idle",
+  );
+  const [imageUrl, setImageUrl] = useState<string | null>(initialImageDataUrl ?? null);
   const [error, setError] = useState<string | null>(null);
   const [hq, setHq] = useState(false);
-  const autoStartedRef = useRef(false);
+  const autoStartedRef = useRef(Boolean(initialImageDataUrl));
   const inFlightRef = useRef(false);
 
   async function generate(useHq: boolean) {
@@ -428,10 +505,7 @@ function PosterGenerator({ prompt, client }: { prompt: string; client: string })
     inFlightRef.current = true;
     setState("generating");
     setError(null);
-    if (imageUrl) {
-      URL.revokeObjectURL(imageUrl);
-      setImageUrl(null);
-    }
+    setImageUrl(null);
     try {
       const res = await fetch("/api/poster", {
         method: "POST",
@@ -443,9 +517,10 @@ function PosterGenerator({ prompt, client }: { prompt: string; client: string })
         throw new Error(data.error ?? `Qwen returned ${res.status}`);
       }
       const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      setImageUrl(url);
+      const dataUrl = await blobToDataUrl(blob);
+      setImageUrl(dataUrl);
       setState("done");
+      onImageReady?.(dataUrl);
     } catch (err) {
       setError(err instanceof Error ? err.message : "poster generation failed");
       setState("error");
@@ -456,6 +531,7 @@ function PosterGenerator({ prompt, client }: { prompt: string; client: string })
 
   // Auto-render the poster the moment the crew finishes. One-shot per prompt;
   // user can re-trigger via the Regenerate button (which respects the HQ toggle).
+  // Skipped if we've hydrated from the portfolio.
   useEffect(() => {
     if (autoStartedRef.current) return;
     if (!prompt || prompt.trim().length < 30) return;

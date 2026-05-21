@@ -342,6 +342,10 @@ export default function Run({
                             {accumulatedOutput}
                           </pre>
                         </>
+                      ) : isDone ? (
+                        <p className="text-sm text-ink/50">
+                          Output not captured. The status endpoint only retains the most recent task once the run completes — watch a run live to see each deliverable as it lands.
+                        </p>
                       ) : (
                         <p className="text-sm text-ink/50">
                           No output yet. The crew is working sequentially — this task starts after the previous one finishes.

@@ -119,18 +119,21 @@ export default function Run({
         )}
 
         {isDone && status?.result && (
-          <section className="mb-12 bg-teal text-cream p-8 shadow-[8px_8px_0_0_#1A1A1A]">
-            <p className="text-xs uppercase tracking-[0.3em] mb-2 opacity-80">
-              Final Gemini-ready prompt
-            </p>
-            <h2 className="font-display text-3xl mb-4">
-              Hand this to Gemini Nano Banana Pro
-            </h2>
-            <pre className="bg-cream text-ink p-6 whitespace-pre-wrap font-body text-base leading-relaxed">
-              {status.result}
-            </pre>
-            <CopyButton text={status.result} />
-          </section>
+          <>
+            <section className="mb-8 bg-teal text-cream p-8 shadow-[8px_8px_0_0_#1A1A1A]">
+              <p className="text-xs uppercase tracking-[0.3em] mb-2 opacity-80">
+                Final Gemini-ready prompt
+              </p>
+              <h2 className="font-display text-3xl mb-4">
+                Hand this to Gemini Nano Banana Pro
+              </h2>
+              <pre className="bg-cream text-ink p-6 whitespace-pre-wrap font-body text-base leading-relaxed">
+                {status.result}
+              </pre>
+              <CopyButton text={status.result} />
+            </section>
+            <PosterGenerator prompt={status.result} client={client ?? "campaign"} />
+          </>
         )}
 
         {isFailed && (
@@ -239,6 +242,113 @@ export default function Run({
         </footer>
       </div>
     </main>
+  );
+}
+
+function PosterGenerator({ prompt, client }: { prompt: string; client: string }) {
+  const [state, setState] = useState<"idle" | "generating" | "done" | "error">("idle");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [hq, setHq] = useState(false);
+
+  async function generate() {
+    if (state === "generating") return;
+    setState("generating");
+    setError(null);
+    if (imageUrl) {
+      URL.revokeObjectURL(imageUrl);
+      setImageUrl(null);
+    }
+    try {
+      const res = await fetch("/api/poster", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, hq }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? `Qwen returned ${res.status}`);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      setImageUrl(url);
+      setState("done");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "poster generation failed");
+      setState("error");
+    }
+  }
+
+  const safeName = client.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "campaign";
+
+  return (
+    <section className="mb-12 bg-coral text-cream p-8 shadow-[8px_8px_0_0_#1A1A1A]">
+      <p className="text-xs uppercase tracking-[0.3em] mb-2 opacity-80">
+        Actually render it
+      </p>
+      <h2 className="font-display text-3xl mb-4">
+        Generate the poster with Qwen-Image-Edit
+      </h2>
+      <p className="text-sm leading-relaxed opacity-90 mb-6 max-w-2xl">
+        Sends the prompt above to a Qwen-Image-Edit endpoint with a blank cream canvas.
+        Fast mode: ~15–60 seconds. HQ mode runs the full 40-step sampler (~3 minutes)
+        for cleaner text and finer detail.
+      </p>
+
+      <div className="flex flex-wrap items-center gap-4 mb-6">
+        <button
+          type="button"
+          onClick={generate}
+          disabled={state === "generating"}
+          className="bg-cream text-ink font-bold uppercase tracking-[0.25em] px-6 py-3 text-sm disabled:opacity-50 hover:bg-mustard transition-colors"
+        >
+          {state === "generating" ? (hq ? "Rendering (~3 min)…" : "Rendering (~30s)…") : "Generate poster"}
+        </button>
+        <label className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] cursor-pointer">
+          <input
+            type="checkbox"
+            checked={hq}
+            onChange={(e) => setHq(e.target.checked)}
+            disabled={state === "generating"}
+            className="w-4 h-4 accent-mustard"
+          />
+          HQ mode
+        </label>
+      </div>
+
+      {error && (
+        <div className="bg-cream text-coral border-2 border-cream p-4 text-sm mb-4">
+          {error}
+        </div>
+      )}
+
+      {imageUrl && state === "done" && (
+        <div className="bg-cream p-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={imageUrl}
+            alt={`Generated 1960s Mad Men style poster for ${client}`}
+            className="w-full max-w-2xl mx-auto block"
+          />
+          <div className="mt-4 flex flex-wrap gap-3">
+            <a
+              href={imageUrl}
+              download={`madmen-${safeName}.png`}
+              className="bg-ink text-cream uppercase tracking-[0.25em] text-xs font-bold px-4 py-2 hover:bg-coral transition-colors"
+            >
+              Download PNG
+            </a>
+            <button
+              type="button"
+              onClick={generate}
+              className="bg-mustard text-ink uppercase tracking-[0.25em] text-xs font-bold px-4 py-2 hover:bg-ink hover:text-cream transition-colors"
+            >
+              Regenerate
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 

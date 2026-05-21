@@ -70,6 +70,14 @@ export default function Run({
   // Per-task deliverables accumulate as last_executed_task changes over time
   // since the endpoint only returns the most recent one.
   const [taskOutputs, setTaskOutputs] = useState<Record<string, string>>({});
+  // The crew's final prompt is editable. We initialize editedPrompt the first
+  // time status.result lands; subsequent edits are user-driven.
+  const [editedPrompt, setEditedPrompt] = useState<string | null>(null);
+  useEffect(() => {
+    if (status?.result && editedPrompt === null) {
+      setEditedPrompt(status.result);
+    }
+  }, [status?.result, editedPrompt]);
 
   useEffect(() => {
     let alive = true;
@@ -238,18 +246,41 @@ export default function Run({
         {isDone && status?.result && (
           <>
             <section className="mb-8 bg-teal text-cream p-8 shadow-[8px_8px_0_0_#1A1A1A]">
-              <p className="text-xs uppercase tracking-[0.3em] mb-2 opacity-80">
-                Final Gemini-ready prompt
-              </p>
-              <h2 className="font-display text-3xl mb-4">
-                Hand this to Gemini Nano Banana Pro
-              </h2>
-              <pre className="bg-cream text-ink p-6 whitespace-pre-wrap font-body text-base leading-relaxed">
-                {status.result}
-              </pre>
-              <CopyButton text={status.result} />
+              <div className="flex items-baseline justify-between gap-4 mb-4 flex-wrap">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.3em] mb-2 opacity-80">
+                    Final Gemini-ready prompt
+                    {editedPrompt !== null && editedPrompt !== status.result && (
+                      <span className="ml-2 bg-cream text-teal px-2 py-0.5 text-[10px]">edited</span>
+                    )}
+                  </p>
+                  <h2 className="font-display text-3xl">Edit, then regenerate below</h2>
+                </div>
+              </div>
+              <textarea
+                value={editedPrompt ?? status.result}
+                onChange={(e) => setEditedPrompt(e.target.value)}
+                className="w-full bg-cream text-ink p-6 font-body text-base leading-relaxed min-h-[280px] focus:outline-none focus:ring-4 focus:ring-coral focus:ring-inset border-0 resize-y"
+                spellCheck={false}
+                aria-label="Editable Gemini-ready prompt"
+              />
+              <div className="mt-4 flex gap-3 flex-wrap">
+                <CopyButton text={editedPrompt ?? status.result} />
+                {editedPrompt !== null && editedPrompt !== status.result && (
+                  <button
+                    type="button"
+                    onClick={() => setEditedPrompt(status.result!)}
+                    className="bg-cream text-teal uppercase tracking-[0.25em] text-xs font-bold px-4 py-2 hover:bg-mustard hover:text-ink transition-colors"
+                  >
+                    Reset to crew output
+                  </button>
+                )}
+              </div>
             </section>
-            <PosterGenerator prompt={status.result} client={client ?? "campaign"} />
+            <PosterGenerator
+              prompt={editedPrompt ?? status.result}
+              client={client ?? "campaign"}
+            />
           </>
         )}
 

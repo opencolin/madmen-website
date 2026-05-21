@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { TASK_ORDER, TASKS, TEAM, type AgentColor } from "@/lib/team";
 import { Starburst } from "@/components/decorations";
@@ -250,9 +250,12 @@ function PosterGenerator({ prompt, client }: { prompt: string; client: string })
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hq, setHq] = useState(false);
+  const autoStartedRef = useRef(false);
+  const inFlightRef = useRef(false);
 
-  async function generate() {
-    if (state === "generating") return;
+  async function generate(useHq: boolean) {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
     setState("generating");
     setError(null);
     if (imageUrl) {
@@ -263,7 +266,7 @@ function PosterGenerator({ prompt, client }: { prompt: string; client: string })
       const res = await fetch("/api/poster", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, hq }),
+        body: JSON.stringify({ prompt, hq: useHq }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -276,45 +279,49 @@ function PosterGenerator({ prompt, client }: { prompt: string; client: string })
     } catch (err) {
       setError(err instanceof Error ? err.message : "poster generation failed");
       setState("error");
+    } finally {
+      inFlightRef.current = false;
     }
   }
 
-  const safeName = client.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "campaign";
+  // Auto-render the poster the moment the crew finishes. One-shot per prompt;
+  // user can re-trigger via the Regenerate button (which respects the HQ toggle).
+  useEffect(() => {
+    if (autoStartedRef.current) return;
+    if (!prompt || prompt.trim().length < 30) return;
+    autoStartedRef.current = true;
+    void generate(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prompt]);
+
+  const safeName =
+    client.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "campaign";
+
+  const isGenerating = state === "generating";
+  const sectionTitle =
+    state === "done"
+      ? "Your 1960s ad poster"
+      : state === "error"
+      ? "Render failed — try again"
+      : "Rendering your poster…";
 
   return (
     <section className="mb-12 bg-coral text-cream p-8 shadow-[8px_8px_0_0_#1A1A1A]">
       <p className="text-xs uppercase tracking-[0.3em] mb-2 opacity-80">
-        Actually render it
+        {state === "done" ? "Direct from Qwen-Image-Edit" : "Auto-rendering with Qwen-Image-Edit"}
       </p>
-      <h2 className="font-display text-3xl mb-4">
-        Generate the poster with Qwen-Image-Edit
-      </h2>
-      <p className="text-sm leading-relaxed opacity-90 mb-6 max-w-2xl">
-        Sends the prompt above to a Qwen-Image-Edit endpoint with a blank cream canvas.
-        Fast mode: ~15–60 seconds. HQ mode runs the full 40-step sampler (~3 minutes)
-        for cleaner text and finer detail.
-      </p>
+      <h2 className="font-display text-3xl mb-4">{sectionTitle}</h2>
 
-      <div className="flex flex-wrap items-center gap-4 mb-6">
-        <button
-          type="button"
-          onClick={generate}
-          disabled={state === "generating"}
-          className="bg-cream text-ink font-bold uppercase tracking-[0.25em] px-6 py-3 text-sm disabled:opacity-50 hover:bg-mustard transition-colors"
-        >
-          {state === "generating" ? (hq ? "Rendering (~3 min)…" : "Rendering (~30s)…") : "Generate poster"}
-        </button>
-        <label className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] cursor-pointer">
-          <input
-            type="checkbox"
-            checked={hq}
-            onChange={(e) => setHq(e.target.checked)}
-            disabled={state === "generating"}
-            className="w-4 h-4 accent-mustard"
-          />
-          HQ mode
-        </label>
-      </div>
+      {isGenerating && (
+        <div className="bg-cream text-ink p-6 mb-6 flex items-center gap-4">
+          <span className="w-3 h-3 bg-coral animate-pulse" aria-hidden />
+          <p className="text-sm">
+            {hq
+              ? "HQ render in progress — full 40-step sampler, ~3 minutes."
+              : "Fast render in progress — ~15–60 seconds."}
+          </p>
+        </div>
+      )}
 
       {error && (
         <div className="bg-cream text-coral border-2 border-cream p-4 text-sm mb-4">
@@ -323,31 +330,47 @@ function PosterGenerator({ prompt, client }: { prompt: string; client: string })
       )}
 
       {imageUrl && state === "done" && (
-        <div className="bg-cream p-4">
+        <div className="bg-cream p-4 mb-6">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={imageUrl}
             alt={`Generated 1960s Mad Men style poster for ${client}`}
             className="w-full max-w-2xl mx-auto block"
           />
-          <div className="mt-4 flex flex-wrap gap-3">
-            <a
-              href={imageUrl}
-              download={`madmen-${safeName}.png`}
-              className="bg-ink text-cream uppercase tracking-[0.25em] text-xs font-bold px-4 py-2 hover:bg-coral transition-colors"
-            >
-              Download PNG
-            </a>
-            <button
-              type="button"
-              onClick={generate}
-              className="bg-mustard text-ink uppercase tracking-[0.25em] text-xs font-bold px-4 py-2 hover:bg-ink hover:text-cream transition-colors"
-            >
-              Regenerate
-            </button>
-          </div>
         </div>
       )}
+
+      <div className="flex flex-wrap items-center gap-4">
+        {(state === "done" || state === "error") && (
+          <button
+            type="button"
+            onClick={() => generate(hq)}
+            disabled={isGenerating}
+            className="bg-cream text-ink font-bold uppercase tracking-[0.25em] px-6 py-3 text-sm disabled:opacity-50 hover:bg-mustard transition-colors"
+          >
+            {hq ? "Regenerate in HQ" : "Regenerate"}
+          </button>
+        )}
+        {imageUrl && state === "done" && (
+          <a
+            href={imageUrl}
+            download={`madmen-${safeName}.png`}
+            className="bg-ink text-cream uppercase tracking-[0.25em] text-xs font-bold px-4 py-3 hover:bg-mustard hover:text-ink transition-colors"
+          >
+            Download PNG
+          </a>
+        )}
+        <label className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] cursor-pointer ml-auto">
+          <input
+            type="checkbox"
+            checked={hq}
+            onChange={(e) => setHq(e.target.checked)}
+            disabled={isGenerating}
+            className="w-4 h-4 accent-mustard"
+          />
+          HQ mode (~3 min)
+        </label>
+      </div>
     </section>
   );
 }

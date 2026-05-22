@@ -16,21 +16,21 @@ type RunPhase =
 // One Joan line per task. Spoken while THAT task is in progress.
 export const JOAN_TASK_LINES: Record<string, string> = {
   client_business_overview_and_requirements:
-    "Marketing's giving us the lay of the land. Brand objectives, target audience, budget — the boring stuff first.",
+    "Roger just landed the brand over lunch at the Pierre. He's briefing the room — objectives, audience, what they're up against.",
   client_discovery_and_briefing:
     "Pete's running discovery. He's eager — sometimes too eager — but he gets the brief right.",
   mad_men_campaign_analysis:
-    "Bob's pulling reference campaigns from the archive. He can recite every Sterling Cooper pitch from memory.",
+    "Bert's pulling reference campaigns from the archive. He can recite every Sterling Cooper pitch back to 1923, in stocking feet.",
   ai_prompt_strategy_for_mad_men_style:
     "Don's locked himself in the office. Don't bother him. He'll come out with the strategy when he's good and ready.",
   gemini_nano_banana_pro_prompt_optimization:
-    "Engineering's formatting the prompt for the image gen. Don't ask me how — it works.",
+    "Harry's deciding the format. He runs media — he knows what plays in print this year.",
   visual_design_specifications_for_client_name_poster:
     "Sal's on the typography and palette. He's the only one in this building with actual taste.",
   create_final_ai_image_generation_prompt:
-    "Peggy's drafting the final prompt. She works harder than any of them, and she'll find the emotional hook.",
+    "Peggy's drafting the campaign. She works harder than any of them, and she'll find the emotional hook.",
   final_single_advertisement_prompt:
-    "One last polish from engineering. Then I'll show you the campaign myself.",
+    "Ben's giving it one last polish. Twice as fast as Peggy, half the patience. Then I'll walk it over.",
 };
 
 export function joanLineForPhase(opts: {

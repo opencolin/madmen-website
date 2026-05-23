@@ -1,6 +1,6 @@
 # madmen.ai — website
 
-Web UI for the Mad Men AI poster generator crew (a deployed CrewAI Enterprise workflow). Enter a brand name, watch eight agents run a 1960s ad brief in sequence, copy the final Gemini Nano Banana prompt.
+Web UI for the Mad Men poster generator crew (a deployed CrewAI Enterprise workflow). Enter a brand name, watch eight agents run a 1960s ad brief in sequence, then auto-render the poster with Qwen-Image-Edit.
 
 ## What it does
 
@@ -8,7 +8,7 @@ Web UI for the Mad Men AI poster generator crew (a deployed CrewAI Enterprise wo
 2. The Next.js server proxies a `POST /kickoff` to your deployed CrewAI Enterprise endpoint and returns a `kickoff_id`.
 3. The browser polls `GET /api/status/:id` every 5 seconds. The server proxies each call to CrewAI.
 4. As each of the 8 sequential tasks finishes, its deliverable becomes inspectable (expand the row).
-5. When the crew completes, the final 200–350 word Gemini Nano Banana prompt is displayed with a copy button.
+5. When the crew completes, the final 200–300 word Qwen-Image-Edit prompt is displayed in an editable textarea, and the poster auto-renders by posting the prompt + a blank cream canvas to a Qwen-Image-Edit endpoint.
 
 The bearer token stays on the server. The browser only ever talks to `/api/*`.
 

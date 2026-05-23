@@ -12,7 +12,7 @@ const MAX_ENTRIES = 12; // ~12 entries * ~1.5MB each = ~18MB, brushing browser l
 export type PortfolioEntry = {
   id: string; // CrewAI kickoff_id
   client: string; // brand name shown to user
-  prompt: string; // current Gemini prompt (may be edited)
+  prompt: string; // current Qwen-Image-Edit prompt (may be edited)
   promptOriginal: string; // original crew output
   imageDataUrl: string | null; // base64 PNG data URL, or null until rendered
   createdAt: number;

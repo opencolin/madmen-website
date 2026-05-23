@@ -342,7 +342,7 @@ export default function Run({
                 onChange={(e) => setEditedPrompt(e.target.value)}
                 className="w-full bg-cream text-ink p-6 font-body text-base leading-relaxed min-h-[280px] focus:outline-none focus:ring-4 focus:ring-coral focus:ring-inset border-0 resize-y"
                 spellCheck={false}
-                aria-label="Editable Gemini-ready prompt"
+                aria-label="Editable image-editor prompt"
               />
               <div className="mt-4 flex gap-3 flex-wrap">
                 <CopyButton text={editedPrompt ?? status.result} />

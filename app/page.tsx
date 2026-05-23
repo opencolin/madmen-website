@@ -221,7 +221,7 @@ export default function Home() {
 
         <footer className="mt-20 pt-8 border-t-2 border-ink/20 text-[10px] uppercase tracking-[0.3em] text-ink/50 flex justify-between flex-wrap gap-4">
           <span>Madmen.ai · powered by CrewAI Enterprise</span>
-          <span>Output: Gemini Nano Banana prompt</span>
+          <span>Output: a 1960s ad poster, delivered by Joan</span>
         </footer>
       </div>
     </main>

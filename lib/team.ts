@@ -66,10 +66,10 @@ export const TASKS: Record<string, Task> = {
   },
   gemini_nano_banana_pro_prompt_optimization: {
     id: "gemini_nano_banana_pro_prompt_optimization",
-    title: "Qwen-Image-Edit format optimization",
+    title: "Gemini Nano Banana optimization",
     agentId: "senior_prompt_engineer_1",
     deliverable:
-      "Qwen-Image-Edit formatting guidelines: imperative opening, text-rendering technique, palette format, parameters (num_inference_steps, seed, hq).",
+      "Gemini Nano Banana Pro formatting guidelines: descriptive narrative structure, subject → environment → style → tech → mood hierarchy, photography terms, text-rendering technique.",
   },
   visual_design_specifications_for_client_name_poster: {
     id: "visual_design_specifications_for_client_name_poster",
@@ -80,17 +80,17 @@ export const TASKS: Record<string, Task> = {
   },
   create_final_ai_image_generation_prompt: {
     id: "create_final_ai_image_generation_prompt",
-    title: "Final image-editor prompt (draft)",
+    title: "Final image prompt (draft)",
     agentId: "peggy_olson",
     deliverable:
-      "200-300 word Qwen-Image-Edit prompt as a single imperative-narrative paragraph.",
+      "200-300 word Gemini Nano Banana prompt as a descriptive narrative paragraph.",
   },
   final_single_advertisement_prompt: {
     id: "final_single_advertisement_prompt",
     title: "Final advertisement prompt (polish)",
     agentId: "senior_prompt_engineer_2",
     deliverable:
-      "Final 200-300 word Qwen-Image-Edit prompt, ready to paste alongside a blank cream canvas.",
+      "Final 200-300 word Gemini Nano Banana prompt, ready to hand to the image generator.",
   },
 };
 

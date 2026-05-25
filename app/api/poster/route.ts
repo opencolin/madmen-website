@@ -1,6 +1,7 @@
-import { generatePoster } from "@/lib/qwen";
+import { generatePoster } from "@/lib/imagegen";
 
-// Allow long Qwen calls. Vercel default is 300s on the Hobby plan.
+// Vercel default timeout is 300s as of late 2025. Gemini Nano Banana usually
+// returns in ~5-15s; Nano Banana Pro can take 30-90s. 300s is plenty.
 export const maxDuration = 300;
 
 export async function POST(req: Request) {
@@ -14,11 +15,12 @@ export async function POST(req: Request) {
       );
     }
     const hq = Boolean(body?.hq);
-    const seed = typeof body?.seed === "number" ? body.seed : undefined;
 
-    const png = await generatePoster({ prompt, hq, seed });
+    const png = await generatePoster({ prompt, hq });
 
-    return new Response(png, {
+    // Wrap in a Blob to satisfy the BodyInit typing across Node fetch +
+    // TypeScript 5.6's tighter Uint8Array generic. Same wire format.
+    return new Response(new Blob([new Uint8Array(png)], { type: "image/png" }), {
       headers: {
         "Content-Type": "image/png",
         "Cache-Control": "no-store",

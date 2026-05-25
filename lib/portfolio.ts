@@ -3,7 +3,7 @@
 //
 // Storage shape: a single key holding a Record<id, PortfolioEntry>. We sort on
 // read by updatedAt desc. Images are stored as base64 data URLs so they
-// rehydrate without re-hitting Qwen. Cap at MAX_ENTRIES, FIFO evict the
+// rehydrate without re-hitting the image gen. Cap at MAX_ENTRIES, FIFO evict the
 // oldest by updatedAt.
 
 const STORAGE_KEY = "madmen.portfolio.v1";
@@ -12,7 +12,7 @@ const MAX_ENTRIES = 12; // ~12 entries * ~1.5MB each = ~18MB, brushing browser l
 export type PortfolioEntry = {
   id: string; // CrewAI kickoff_id
   client: string; // brand name shown to user
-  prompt: string; // current Qwen-Image-Edit prompt (may be edited)
+  prompt: string; // current Gemini Nano Banana prompt (may be edited)
   promptOriginal: string; // original crew output
   imageDataUrl: string | null; // base64 PNG data URL, or null until rendered
   createdAt: number;

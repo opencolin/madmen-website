@@ -514,7 +514,7 @@ function PosterGenerator({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? `Qwen returned ${res.status}`);
+        throw new Error(data.error ?? `Image gen returned ${res.status}`);
       }
       const blob = await res.blob();
       const dataUrl = await blobToDataUrl(blob);
@@ -552,10 +552,10 @@ function PosterGenerator({
       : "Joan's sent it to the art department";
   const sectionEyebrow =
     state === "done"
-      ? "From Joan's art team · Qwen-Image-Edit"
+      ? "From Joan's art team · Gemini Nano Banana"
       : state === "error"
       ? "Joan, we have a problem"
-      : "Auto-rendering · Qwen-Image-Edit";
+      : "Auto-rendering · Gemini Nano Banana";
 
   return (
     <section className="mb-12 bg-coral text-cream p-8 shadow-[8px_8px_0_0_#1A1A1A]">
@@ -567,8 +567,8 @@ function PosterGenerator({
           <span className="w-3 h-3 bg-coral animate-pulse" aria-hidden />
           <p className="text-sm">
             {hq
-              ? "HQ render in progress — full 40-step sampler, ~3 minutes."
-              : "Fast render in progress — ~15–60 seconds."}
+              ? "HQ render in progress — Gemini Nano Banana Pro (~30–90 seconds)."
+              : "Fast render in progress — Gemini Nano Banana (~10–20 seconds)."}
           </p>
         </div>
       )}
@@ -618,7 +618,7 @@ function PosterGenerator({
             disabled={isGenerating}
             className="w-4 h-4 accent-mustard"
           />
-          HQ mode (~3 min)
+          HQ mode (Nano Banana Pro)
         </label>
       </div>
     </section>
